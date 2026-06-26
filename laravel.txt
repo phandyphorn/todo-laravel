@@ -1,0 +1,568 @@
+- Laravel is a PHP web framework following the MVC parttern (Model View Controller) to build web application, designed to make pieces of tasks such as:
++ Routing
++ Authentication
++ Caching
++ Database interface
+and key features include:
++ Eloquent ORM = Object-Relational Mapping
++ Blade templateing engine (to write instead plain PHP mixed with HTML, we use @if <> </> @endif.
++ Artisan CLI
++ Build-in authntication
++ Rich ecosystem (Telescope = if there are any request from client side- will show, but it show for development).
+
+- Laravel lifecycle:
+public/index.php -> boostrap/app.php -> HTTP Kernel -> Middleware stack -> Router -> Controller -> Response.
+
+- HTTP Kernel -> Middleware stack  (if from laravel 11+ we replace them by boostrap/app.php and boostrap/providers.php.
+
+- MVC  stands for Model-View-Controller = a way to seperate concerns in an applications.
++ Model = handle database logic (Eloquent)
++ View = is the blad template rendered to the uesr, if api is json.
++ Controller = ties them together by handing HTTP requests and return response.
+
+- Artisan is Laravel's command-line interface. It automates repetivie task like generating boilerplate code, running migrations and clearing caches.
++ php artisan make:model Post -mcr 
+    • m = migration = database/migrations/xxxx_create_posts_table.php (xxxx = year, month, day time)
+        ex:
+        Schema::create('posts', function (Blueprint $table){
+            $table->id();
+            $table->timestamp();
+        }
+    • c = controller = app/Http/controllers/PostController.php
+        ex: 
+        class PostController extends Controller {
+            public function index() {}
+            public function store() {}
+        }
+    • r = resoure controller = controller with all 7 RESSTful methods are index, store, show, update, create and edit).
++ php artisan make:model Post -mcr --api (give only index, store, show, update, destroy)
++ php artisan route:list
++ php artisan tinker
++ php artisan cache:clear
+
+- Different types of routes in Laravel (Laravel supports HTTP verb-based routes which defined in routes/api.php):
++ Route::get('/users), [UserController::class, 'index']);
++ Route::post('/users), [UserController::class, 'store']);
++ Route::put('/users/{id}', [UserController::class, 'update']);
++ Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+:: = Scope resolution operator used to access static methods, constants, or properties on a class
+=> =  Double arrow operator used to assign values to keys in associative arrays (e.g., ['id' => 1]).
+-> = Object operator used to access methods or properties on an object instance (e.g., $user->name)
+
+namespace - defines the logical location and ownership
+use = import class from another namespace.
+
+** all 7 RESTful routes:
+Route::resource('/posts', PostController::class);
+
+- Route model binding automatically resolves Eloquent models from route parameters.
+
+- Different between web.php and api.php routes (boostrap/api.php):
++ web.php = routes are wrapped in the web middleware group which  includes session,
+CSRF protection, and cookies for browser.
++ api.php = routes use the api middlewear group, are stateless (no sessions), and
+are prefixed with /api by default.
+
+- Eloquent is Laravel's active record ORM. Each database table has a corresponding Model class
+for interacting with it.
++ php artisan make:model Post.
+example result:
+class Post extends Model {
+    protected $fillable = [
+        'title',
+        'body',
+        'user_id'
+    ];
+}
+
+// Usage
+Post::all();
+Post::find(1);
+Post::where('active', true)->get();
+Post::create(['title' => 'Hello']);
+
+- Eloquent relationships = relationship between each modal to each model
++ hasOne (hasOne)
+ex: 
+class User extends Model {
+    public function profile() {
+        return $this->hasOne(Profile::class);
+        // Laravel looks for user_id in profiles table
+    }
+}
+
++ One-to-many (hasMany): ex: User has many Todos
+ex: 
+class User extends Modal {
+    public function posts() {
+        return $this->hasMany(Post::class);
+    }
+}
+
++ Belongsto (Todo belong to that user). 
+ex:
+class User extends Model {
+    publicf function tags() {
+        return $this->belongsTo(Tag::class);
+    }
+}
+
++ Many-to-Many (belongsToMany). Ex: post has many tags. tag many posts.
+ex: 
+class Post extends Modal {
+    public function tags() {
+        return $this->belongsToMany(Tag::class)
+    }
+}
+
++ hasOneThrough (Country has on User's phone number through user).
+ex:
+class Country extends Model {
+    public function userPhone() {
+        return $this->hasOneThrough(
+            Phone::class,   // final model we want
+            User::class,    // through this model
+        );
+    }
+}
+
++ hasManyThrough (Country has many Posts through user)
+ex:
+class Country extends Model {
+    public function posts() {
+        return $this->hasManyThrough(
+            Post::class,    // final model we want
+            User::class,    // through this model
+        );
+    }
+}
+
+
+// Usage
+$user->posts; // all posts for user
+$post->user;  // the author
+
+- N+1 problem in Eloquent occurs when you load a collection
+and then access a relationship on each item, firing one extra
+query per item. so, we use with() for eager loading, we can also use 
+withCount('posts') to just load the count.
+
+// Bad — N+1 (1 query for users + 1 per user for posts)
+$users = User::all();
+foreach ($users as $user) {
+    echo $user->posts->count();
+}
+
+// Good — eager loading with with()
+$users = User::with('posts')->get();
+foreach ($users as $user) {
+    echo $user->posts->count(); // no extra queries
+}
+
+- Migrations are version control for our database schema. Migrate 
+allow teams to share and synchronize schema changes without manually
+editing databases.
++ php artisan migrate (run migrations)
++ php artisan migrate:rollback (undo last batch)
+
+- Middleware sits between an HTTP request and our application logic. It filters
+or modifies requests (authntication, logging, CORS headers).
++ php artisan make:middleware CheckAge 
+
+
+- Different between global middleware and route middleware
++ Global middleware = runs on every HTTP request.It registered in 
+$middleware array in app/Http/Kernel.php.
++ Route middleware = is applied selectively to specific routes and route groups.
+It registered in $routeMiddleware and applied via ->middleware('name') on a route.
+
+- Authentication in Laravel is provided, it is build-in authentication via starter kits (Breeze, Jetstream)
+or the Auth facade manually. (it define auto in route/api.php)
+
+
+- Sanctum is a lightweidht authentication package for SPAs, mobile apps and simple token-based APIS.
+It's simpler than Passport (no full OAuth2).
+
+    // Issue a token
+    $token = $user->createToken('mobile-app')->plainTextToken;
+
+    // Protect routes
+    Route::middleware('auth:sanctum')->get('/user', fn(Request $r) => $r->user());
+
+- Queues defer time-consuming task (sending emails, processing images,
+calling APIs) to run in the background and keep HTTP responses fast.
+ex:
+    php artisan make:job SendWelcomeEmail
+
+    class SendWelcomeEmail implements ShouldQueue {
+        public function handle() {
+            Mail::to($this->user)->send(new WelcomeMail());
+        }
+    }
+
+    // Dispatch
+    SendWelcomeEmail::dispatch($user);
+    SendWelcomeEmail::dispatch($user)->delay(now()->addMinutes(5));
+
+    // Run the worker
+    php artisan queue:work
+
+- Laravel supports several queue drivers configuable in config/queue.php.
+We have below queue drivers configuration:
++ sync because it runs jobs immedieately in the same
+process (good for local dev/tesing) 
++ database is store job in DB table (simple, no extra infra).
++ redis = fast in memory, great for high-throughout production.
++ sqs = AWS managed queue, scalles massively.
++ Beanstalkd = lightweidht job queue server.
+
+=> for production, Redis or sqs are recommended.
+
+- The service container is a powerful IoC (Inversion of Control) container
+that manages class dependencies and performs dependency injection automatically.
+    // Binding an interface to an implementation
+    app()->bind(PaymentGatewayInterface::class, StripeGateway::class);
+
+    // Auto-resolution via constructor injection
+    class OrderController extends Controller {
+        public function __construct(
+            private PaymentGatewayInterface $payment
+        ) {}
+    }
+    // Laravel auto-injects StripeGateway when resolving OrderController
+
+
+- Service Providers in Laravel are the central place to configure and 
+boostrap our application. 
+
+    php artisan make:provider PaymentServiceProvider
+
+    class PaymentServiceProvider extends ServiceProvider {
+        public function register() {
+            // Bind services into the container
+            $this->app->singleton(PaymentGateway::class, function ($app) {
+                return new StripeGateway(config('services.stripe.key'));
+            });
+        }
+        public function boot() {
+            // Runs after all providers are registered
+            // Good for event listeners, routes, views
+        }
+    }
+
+- Laravel provides a unified API for multiple cache backend (file, redis, memcaches, array, database)
+via the Catch facade.
+    // Store for 60 seconds
+    Cache::put('key', 'value', 60);
+
+    // Retrieve
+    Cache::get('key');
+    Cache::get('key', 'default');
+
+    // Remember pattern — get or compute and store
+    $users = Cache::remember('users', 3600, function () {
+        return User::all();
+    });
+
+    // Forget
+    Cache::forget('key');
+    Cache::flush(); // clear all
+
+- Laravel is build on PHP Unit and provides helper methods for HTTP, database and feature testing.
+class UserTest extends TestCase {
+    use RefreshDatabase; // reset DB between tests.
+
+    public function test_user_can_register() {
+        $response = $this->postJson('/api/register', [
+            'name'     => 'DD',
+            'email'    => 'dd@example.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertStatus(201)
+                 ->assertJsonStructure(['token']);
+
+        $this->assertDatabaseHas('users', ['email' => 'dd@example.com']);
+    }
+}
+
+run with : php aritsan test
+
+
+
+++ Laravel
+- composer create-project laravel/laravel my-laravel-app, cd and migrate, and if use docker (do any set up).
+
+- php artisan make:migration create_todos_table (when create table, we need make:migration)
+
+- php artisan migrate (if no, run this)  / docker compose exec app php artisan migrate (docker)
+
+- php artisan make:model Todo (get file in migrate and model)
+
+- php artisan install:api (publishes Sanctum config, api_token migration  = stores tokens, run migrations)
+
+- php artisan make:controller Api/AuthController (Api is folder, AuthController.)
+
+- php artisan make:controller Api/TodoController --model=Todo
+
+- php artisan make:policy TodoPolicy --model=Todo (Create policy.php to modify that those todos are own by that user)
+
+- docker compose exec app php artisan config:publish cors (create cors.php)
+
+- docker compose exec app php artisan migrate (if table desn't exist in database, we need to run migrations (run to sync ng hah).)
+
+- run project (docker compose up -d)
+
+- wann see log request from client-side: (localhost://8000/telescope) = Here the step I use Telscope to see request from client-side.
+docker compose exec app composer require laravel/telescope --dev
+docker compose exec app php artisan telescope:install
+docker compose exec app php artisan migrate
+
+
+
+php artisan make:model Post -mcr = Three run commands.
+- php artisan make:model Post
+- php artisan make:migration xxxx_create_posts_table
+- php artisan make:controller PostController --resource --model=Post
+- Then we go to register routes by : put in routes/api.php => Route::apiResource('post', PostController::class)
+
+
+but if we run only : php artisan make:model Post. We need to run below steps:
+* Model
+- php artisan make:model Post
+
+* Migration
+- php artisan make:miration create_posts_table
+
+* Run the migration
+- php artisan migrate / docker compose exec app php artisan migrate (Run on docker)
+
+* Controller
+- php artisan make:controller PostController --resource --model=Post
+
+* Register routes (we write down in routes/api.php)
+- Route::apiResource('posts', PostController::class)
+
+* If we have auth: we need to:
+- php artisan make:policy PostPolicy --model=Post
+
+
+for laravel 11+
+we should use: php artisan make:model Post -mcrf because it includes:
+- m = migration
+- c = controller
+- r = resource controller
+- f = factory.
+
+
+Step to work between folder:
+- go to check migration table in database/migrate folder (which key we need to define in that table);
+Schema::create('todos', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // cascade show that if user deleted, todo deleted too
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->boolean('completed')->default(false);
+            $table->timestamps();
+        });
+- go to model in Models folder (example: Todo.php). and define relationship
+protected $fillable = [
+        'user_id',
+        'title',
+        'description',
+        'completed',
+    ];
+
+- extends Modal (in Modals folder)
+- extends Controller (in controller)
+
+
+lifecycle:
+- public/index.php
+- boostrap/app.php
+- route/api.php
+- controller
+- response (JSON)
+
+
+==== PostgreSQL = pgsql
+- between pgsql and sql you won't feel the difference, but PostgreSQL shines when we need advanced feature like JSONB (JSON Binary), complex queries, better handle
+large datasets. It also excel at full-text search, native array types and advanced querying.
+
+- If old project use mySQL, and wanna change to postgreSQL, if small project is okay, but if production we might strick on that.
+
+- IoT = Internet of thing (connect hard-ware with software) : refers to a network of physical devices, vehicles, appliances (perform specific household like cooking, cleaning, ...) that are embedded (integrat) with sensors, software and network connectivity, allowing them to collect and share data.
+
+- IoT are important and here are benefits:
++ Improved efficiency (productivities)
++ Data-driven decision-making
++ Cost-savings = check energy and make us know to save more like that.
++ Enhanced customer experience = take data from user real time (like track store or delivery)
+
+
+- IoT need serveral technologies to make it works.
++ Sensors (as eyes and ears) and actuators (get info from eyes and eas to perform) = detext the pressure, light and make physical changes.
++ Connectivity technologies = To transmit IoT data from sensors and actuators to cloud.
++ Cloud computing = Where data is generated
++ Big data analytics = vast amounts (quality) of data generated by IoT devices make business need to use advanced analytics tools to extract insights and identify patterns. (marchine learning = AI, data visualization = Data in table or graph, predictive analytics = predictive the future outcome, like that)
++ Security and privacy technologies
+
+- Risks and challenges in IOT:
++ Security and privacy risks 
++ interoperability issues = difficult to connect between a machine to marchine.
++ Data overload = 
++ Cost and conplexity
++ Requlutory and legal challenges 
+
+=================
+- Container name on docker is defined from docker-compose.yml (docker will follow everything in docker-compose.yml mg hah)
+- ports: - "5432:5432" (left: host(localhost):right:container(port inside docker container where PostgreSQL is listening.))
+
+- we start from docker-compose.yml and Dockerfile and then do follow this comment:
+# Stop and remove old containers + volumes
+docker compose down -v
+
+# Rebuild the PHP image (picks up new Dockerfile changes)
+docker compose build --no-cache
+
+# Start everything
+docker compose up -d
+
+# Verify postgres is running
+docker compose ps
+
+# Run migrations
+docker compose exec app php artisan migrate:fresh --seed
+
+================= Collection Question
+- PHP = Hypertext Preprocessor = is an open-source, server-side
+scripting language primary use to build dynamic, interactive
+websites and web applications. It executes on your web server
+and generates HTML, which is then sent securely to the user's
+browser.
+
+- why we use PHP because it is:
++ Dynamic content
++ Database management
++ Easy to learn
++ Cost-Effective & Flexible
+
+- PHP Core features:
++ PHP syntax basic = variable ($), data types, control structures (if/else)
++ Form handling = get value by name.
++ Database integration = connecting to MySQL, running queries, and
+perform CRUD.
++ Security Practice = Encrypt user data and protecting.
++ Modern framework = Introduction to powerful tools like Laravel or symfony
+to speed up enterprise level.
+
+
+- Java is a object-oriented programming language famouse for it
+"write once, run anywhere" principle.
+
+- why we use Java, because it is:
++ Platform independence = compliled Java code runs on any
+operating system that has a Java Virtual Machine (JVM) installed.
++ Automatic Memory Management = prevent memory leaks.
++ High Performance = It has Just-In-Time (JIT) compiler that
+executes code quickly.
++ Robust & Secure = Strong type-checking and build-in security feature.
+
+
+- Key feature of Java:
++ Core Java Fundamentals = Syntax, data types, operators and control flow.
++ Object-Oriented Programing (OOP) = concepts like encapsultion, inheritance.
+polymorphism and abstraction to write resualbe code.
++ Exception handling = manage runtime erros.
++ Multithreading = Perform multiple tasks.
++ Hands-on Projects = Building real-world application.
+
+
+- Java Spring Boot is an open-source, microservices-ready 
+Java framework build on top of the tradional Spring framework
+and speed up application development.
+
+- Why we use Java Spring Boot, because:
++ Auto-Configuration = it scans our project dependencies and 
+automatically configures our environment.
++ Embedded Servers = build-in web servers like Tomcat, Jetty.
++ Starter dependencies = It make libraries together to single starter.
++ Product-Ready features = It features build-in tools for check health and advanced monitoring.
+
+- Spring boot key features:
++ Foundation & Environment Setup, build with Maven or Gradle.
++ Rest API & Web Development = like @RestController, @GetMapping.
++ Data Perisstence & Databases = connect with mySQL or PostgreSQL.
++ Security & Performance = Spring Security for user authorization and role-based login safely.
++ Microservices & Deployment = Contain the project using Docker for cloud deployment.
+
+
+- Object-Oriented Programming (OOP) = is a software design or concepts
+that structure code around 'objects' rather than logic or functions.
+
+- Why we use OOP, because it is:
++ Modularity = code is divided into independent, self-contained objects.
++ Reusability = Instead of writing the same code multiple times, we canc create
+and reuse.
++ Maintainability = OOP ensure us follow the "Don't repeat yourself" principle.
++ Security = Sensitive data can be hidden from the outside world.
+
+
+- Core feature.
++ Encapsulation = Build data (variables) and methods (functions) into a single 
+unit and restrict access like private, public, protected..
++ Abstraction = Hiding complex background implementation details.
++ Inheritance = children class extends or implement properties from parent class.
++ Polymorphism = Allow the same method or function, but different result.
+
+
+
+- Vue = a progressive Javascript framework used to build
+modern interactive user interface. 
+
+- why we use Vue, because it is:
++ Gentle learning Curve because it is build of standard
+HTML, CSS and Javascript, it is highly approachable for biginners.
++ Progressive Integration = we can build with vite (fast).
++ Exceptional Performance = optimized render system and making
+application fast.
++ Offical ecosystem = maintains perfectly integrated compainion tools.
+
+- Vue core features:
++ Reactive Data Binding = Vue autmatically keeps our data and our webpage
+user interface in sync.
++ Component-Based Architecture = Vue allows us to break down our user
+interface into small, independent, and reusable blocked called component.
++ Directives = These are speciall HTML arrtibutes (prefixed with v-) such as v-if, v-model
++ Virtual Dom = if something change, not update the whole browser webpage, it
+update only the update part.
++ The composition API = offer an organized, flexible syntax that let
+developers group their code.
+
+
+- HTML = Hyper Text Markup Language = is the standard coding language
+used to create and structure the content of web pages.
+
+- Why we use Javascript, because it is:
++ Website Structure = divides web pages into distinct, readable
+sections like header, content, body, footer.
++ Content organization = It tells the browser what your content is.
++ Interlinking = Allow us to create hyperlinks.
++ SEO & Accessibility = Proper HTML ensures search engines can read our site.
+
+- Core Features of HTML is: 
++ Basic Building Block like write tags, element and attributes (<h1></h1>, <p></p>)
++ Document Setup = Understanding how to properly build the standard structure.
++ Multimedia Integration = videos, audio, tracks.
++ Interactive Forms = Bulding contact forms, login screen and use input fields.
++ Hands-on Project = Write code in a text editor like Visual Studio Code.
+
+
+- CSS = Cashcading Style Sheets = is the foundational language used
+to style and design the visual appreaance of HTML. 
+
+- Tailwind CSS is modern framework build on top of CSS, instead 
+of writing custom styles in seperated files.
+
+
