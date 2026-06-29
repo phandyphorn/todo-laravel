@@ -66,14 +66,12 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 # Copy configs
-COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Laravel storage permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-EXPOSE 80
+EXPOSE 8080
 
-CMD envsubst '$PORT' < /etc/nginx/templates/default.conf.template \
-    > /etc/nginx/conf.d/default.conf && \
-    nginx -g 'daemon off;'
+CMD ["/bin/bash", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && supervisord -c /etc/supervisor/conf.d/supervisord.conf"]
