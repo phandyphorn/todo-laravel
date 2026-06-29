@@ -75,4 +75,4 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 8080
 
-CMD ["/bin/bash", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && supervisord -c /etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/bin/bash", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && cat /etc/nginx/conf.d/default.conf && supervisord -c /etc/supervisor/conf.d/supervisord.conf"]
