@@ -48,7 +48,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     nginx \
-    supervisor
+     supervisor \
+    gettext-base
 
 # Install PHP extensions
 RUN docker-php-ext-install \
