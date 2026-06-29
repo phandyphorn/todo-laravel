@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', 'https://todo-react-cliyqob5j-phandyphorns-projects-9bdc8697.vercel.app/'],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 

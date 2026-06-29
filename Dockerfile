@@ -48,8 +48,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     nginx \
-     supervisor \
-    gettext-base
+    supervisor
 
 # Install PHP extensions
 RUN docker-php-ext-install \
@@ -67,12 +66,12 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 # Copy configs
-COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Laravel storage permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-EXPOSE 8080
+EXPOSE 80
 
-CMD ["/bin/bash", "-c", "echo 'PORT='$PORT && envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && echo '--- Generated Nginx config ---' && cat /etc/nginx/conf.d/default.conf && echo '--- Starting supervisord ---' && supervisord -c /etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
