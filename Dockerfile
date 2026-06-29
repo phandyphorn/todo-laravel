@@ -74,4 +74,6 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD envsubst '$PORT' < /etc/nginx/templates/default.conf.template \
+    > /etc/nginx/conf.d/default.conf && \
+    nginx -g 'daemon off;'
