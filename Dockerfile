@@ -40,18 +40,20 @@
 
 FROM php:8.3-fpm
 
-# Install system dependencies
+# Install system dependencies + Nginx + Supervisor
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libpq-dev \        
+    libpq-dev \
     zip \
-    unzip
+    unzip \
+    nginx \
+    supervisor
 
 # Install PHP extensions
 RUN docker-php-ext-install \
     pdo \
-    pdo_pgsql \        
+    pdo_pgsql \
     pgsql
 
 # Install Composer
@@ -61,4 +63,15 @@ WORKDIR /var/www
 
 COPY . .
 
-RUN composer install
+RUN composer install --no-dev --optimize-autoloader
+
+# Copy configs
+COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Laravel storage permissions
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
