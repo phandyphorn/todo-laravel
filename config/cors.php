@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://devremedy-todo.netlify.app/', 'http://localhost:3000'],
+    'allowed_origins' => ['https://devremedy-todo.netlify.app'],
 
     'allowed_origins_patterns' => [],
 
