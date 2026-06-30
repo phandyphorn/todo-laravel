@@ -1,3 +1,0 @@
-- we need railway.com
-- Host postgreSQL 
-- We define for product, staging, development

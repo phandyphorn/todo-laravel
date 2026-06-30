@@ -68,25 +68,18 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: pgsqltodo_db
-      DB_USERNAME: postgres
-      DB_PASSWORD: secret
     depends_on:
-      - postgres
+      - postgres        # 👈 changed from mysql
     networks:
       - laravel
 
-  postgres:
+  postgres:             # 👈 new service
     image: postgres:16
     container_name: laravel_postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: pgsqltodo_db
-      POSTGRES_USER: postgres
+      # POSTGRES_USER: laravel_user
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432"
@@ -113,4 +106,4 @@ networks:
   laravel:
 
 volumes:
-  pgdata:
+  pgdata:               # 👈 changed from mysqldata
