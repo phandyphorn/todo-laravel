@@ -1,46 +1,5 @@
-# FROM php:8.3-fpm
-
-# # Install system dependencies
-# RUN apt-get update && apt-get install -y \
-#     git \
-#     curl \
-#     libpq-dev \
-#     libonig-dev \
-#     libxml2-dev \
-#     zip \
-#     unzip \
-#     netcat-openbsd
-
-# # Install PHP extensions
-# RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath
-
-# # Install Composer
-# RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-# WORKDIR /app
-
-# # Copy project files
-# COPY . .
-
-# # Install Laravel dependencies
-# RUN composer install --no-interaction
-
-# # Set permissions
-# RUN chown -R www-data:www-data /app
-
-# # Copy entrypoint script
-# COPY --chmod=+x ./docker-entrypoint.sh /usr/local/bin/
-
-# EXPOSE 9000
-
-# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-# CMD ["php-fpm"]
-
-# PostgreSQL
-
 FROM php:8.3-fpm
 
-# Install system dependencies + Nginx + Supervisor
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -48,15 +7,15 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     nginx \
-    supervisor
+    supervisor \
+    gettext-base \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
     pgsql
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
@@ -65,13 +24,18 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 
-# Copy configs
-COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+# Nginx config template (uses $PORT at runtime)
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+
+# Supervisor config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Laravel storage permissions
+# Entrypoint to substitute $PORT and start supervisor
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ENTRYPOINT ["/entrypoint.sh"]
