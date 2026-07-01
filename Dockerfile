@@ -21,9 +21,23 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+# Copy composer files first for better layer caching
+COPY composer.json composer.lock ./
+
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Now copy the rest of the app
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader
+# Safety net: remove any cached config/route/view files that may have been
+# accidentally committed locally — these would override Railway's runtime env vars
+RUN rm -f bootstrap/cache/config.php \
+    bootstrap/cache/routes-v7.php \
+    bootstrap/cache/services.php \
+    bootstrap/cache/packages.php
+
+# Re-run composer's post-install scripts now that full app code is present
+RUN composer dump-autoload --optimize
 
 # Nginx config template (uses $PORT at runtime)
 COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
@@ -31,7 +45,7 @@ COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.templa
 # Supervisor config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Entrypoint to substitute $PORT and start supervisor
+# Entrypoint to substitute $PORT, clear/cache config at runtime, migrate, and start supervisor
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
