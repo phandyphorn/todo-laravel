@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+php artisan config:clear
+php artisan config:cache
+
 # Substitute $PORT (and any other env vars) into the Nginx config template
 envsubst '${PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
 
